@@ -1,0 +1,64 @@
+import csv
+import asyncio
+import aiohttp
+from understat import Understat
+import pandas as pd
+
+with open('club list.csv') as csvfile:
+    readCSV = csv.reader(csvfile, delimiter=',')
+    club_list = []
+    for row in readCSV:
+        club_list.append(row)
+
+club_list3 =[]
+club_list_2 = club_list[0:159]
+for x in range(0, 159):
+    y = club_list_2[x][0]
+    club_list3.append(y)
+
+total_set_piece_shots_list = []
+season_list = []
+xG_list = []
+season_set = ['2018', '2017', '2016', '2015', '2014']
+team_list = []
+
+
+async def main():
+    async with aiohttp.ClientSession() as session:
+        understat = Understat(session)
+        for x in club_list3:
+            for y in season_set:
+                try:
+                    team_stats = await understat.get_team_stats(x, y)
+                    situation = team_stats['situation']
+                    corners = situation['FromCorner']
+                    against_corners = corners['against']
+                    against_corners_shots = against_corners['shots']
+                    against_corners_xg = against_corners['xG']
+                    set_pieces = situation['SetPiece']
+                    against_set_pieces = set_pieces['against']
+                    against_set_piece_shots = against_set_pieces['shots']
+                    against_set_piece_xG = against_set_pieces['xG']
+                    total_xG = float(against_corners_xg) + float(against_set_piece_xG)
+                    xG_list.append(float(total_xG))
+                    total_set_piece_shots = float(against_corners_shots) + float(against_set_piece_shots)
+                    total_set_piece_shots_list.append(float(total_set_piece_shots))
+                    season_list.append(y)
+                    team_list.append(x)
+                except:
+                    team_list.append(x)
+                    season_list.append(y)
+                    xG_list.append('?')
+                    total_set_piece_shots_list.append('?')
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
+
+data = {'SP shots': total_set_piece_shots_list,
+        'team': team_list,
+        'season': season_list,
+        'xG': xG_list}
+frame = pd.DataFrame(data)
+frame.to_csv('defensive_set_piece_stats.csv')
+print(frame)
