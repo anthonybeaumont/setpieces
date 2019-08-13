@@ -1,0 +1,62 @@
+import csv
+import asyncio
+import aiohttp
+from understat import Understat
+import pandas as pd
+
+with open('club list.csv') as csvfile:
+    readCSV = csv.reader(csvfile, delimiter=',')
+    club_list = []
+    for row in readCSV:
+        club_list.append(row)
+
+club_list3 =[]
+club_list_2 = club_list[0:159]
+for x in range(0, 159):
+    y = club_list_2[x][0]
+    club_list3.append(y)
+
+total_set_piece_shots_list = []
+season_list = []
+xG_list = []
+season_set = ['2018', '2017', '2016', '2015', '2014']
+team_list = []
+
+
+async def main():
+    async with aiohttp.ClientSession() as session:
+        understat = Understat(session)
+        for x in club_list3:
+            for y in season_set:
+                try:
+                    team_stats = await understat.get_team_stats(x, y)
+                    situation = team_stats['situation']
+                    set_pieces = situation['FromCorner']
+                    corners = situation['SetPiece']
+                    set_pieces_shots = set_pieces['shots']
+                    set_pieces_xG = set_pieces['xG']
+                    corner_shots = corners['shots']
+                    corner_xG = corners['xG']
+                    total_xG = float(set_pieces_xG) + float(corner_xG)
+                    xG_list.append(float(total_xG))
+                    total_set_piece_shots = float(corner_shots) + float(set_pieces_shots)
+                    total_set_piece_shots_list.append(float(total_set_piece_shots))
+                    season_list.append(y)
+                    team_list.append(x)
+                except:
+                    team_list.append(x)
+                    season_list.append(y)
+                    xG_list.append('?')
+                    total_set_piece_shots_list.append('?')
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
+
+data = {'SP shots': total_set_piece_shots_list,
+        'team': team_list,
+        'season': season_list,
+        'xG': xG_list}
+frame = pd.DataFrame(data)
+frame.to_csv('team_set_piece_stats.csv')
+print(frame)
