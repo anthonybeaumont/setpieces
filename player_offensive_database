@@ -1,0 +1,91 @@
+# things to import
+
+
+import asyncio
+import json
+import aiohttp
+from understat import Understat
+import numpy as np
+  
+from scipy import stats
+from players import get_player_stats
+
+total_set_piece_shots_list =[]
+id_list = []
+season_list = []
+xG_list  =[]
+time_list = []
+season_set = ['2018', '2017', '2016' , '2015', '2014']
+team_list = []
+
+for x in range1,7650):
+    id = x
+    try:
+        async def main():
+            async with aiohttp.ClientSession() as session:
+                understat = Understat(session)
+                id = x
+                grouped_stats = await understat.get_player_grouped_stats(id)
+                situation = grouped_stats['situation']
+                for y in season_set:
+                    if y in situation:
+                        season = situation[y]
+                        if 'SetPiece' in season and 'FromCorner' in season:
+                            season_list.append(y)
+                            set_pieces = season['SetPiece']
+                            corners = season['FromCorner']
+                            set_pieces_shots = set_pieces['shots']
+                            set_pieces_xG = set_pieces['xG']
+                            corner_shots = corners['shots']
+                            corner_xG = corners['xG']
+                            total_xG = float(set_pieces_xG) + float(corner_xG)
+                            xG_list.append(total_xG)
+                            total_set_piece_shots = float(corner_shots) + float(set_pieces_shots)
+                            total_set_piece_shots_list.append(float(total_set_piece_shots))
+                            id_list.append(id)
+                            time = corners['time']
+                            time_list.append(time)
+                        elif 'SetPiece' in season and 'FromCorner' not in season:
+                            season_list.append(y)
+                            set_pieces = season['SetPiece']
+                            set_pieces_shots = set_pieces['shots']
+                            set_pieces_xG = set_pieces['xG']
+                            xG_list.append(float(set_pieces_xG))
+                            total_set_piece_shots_list.append(float(set_pieces_shots))
+                            id_list.append(id)
+                            time = set_pieces['time']
+                            time_list.append(time)
+                        elif 'Set Piece' not in season and 'FromCorner' in season:
+                            season_list.append(y)
+                            corners = season['FromCorner']
+                            corner_shots = corners['shots']
+                            corner_xG = corners['xG']
+                            xG_list.append(float(corner_xG))
+                            total_set_piece_shots_list.append(float(corner_shots))
+                            id_list.append(id)
+                            time = corners['time']
+                            time_list.append(time)
+                        else:
+                            season_list.append('?')
+                            xG_list.append(0)
+                            total_set_piece_shots_list.append(0)
+                            id_list.append(id)
+                            time_list.append('?')
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
+    except:
+        season_list.append('?')
+        xG_list.append(0)
+        total_set_piece_shots_list.append(0)
+        id_list.append(id)
+        time_list.append('?')
+
+
+data = {'SP shots': total_set_piece_shots_list,
+        'id': id_list,
+        'season': season_list,
+        'xG': xG_list,
+        'Time': time_list}
+frame = pd.DataFrame(data)
+frame.to_csv('antbomb1_7650.csv')
+print(frame)
